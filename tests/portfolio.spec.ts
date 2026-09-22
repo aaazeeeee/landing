@@ -1,0 +1,37 @@
+﻿import { test, expect } from '@playwright/test';
+test('desktop navigation, inventory, dialog, terminal, and message', async ({ page, context }) => {
+ const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+ await context.grantPermissions(['clipboard-read','clipboard-write']);
+ await page.setViewportSize({width:1440,height:1000});
+ await page.goto('/');
+ await expect(page.getByRole('heading',{level:1})).toContainText('GILYAN');
+ await page.getByRole('link',{name:/PRESS START/}).click();
+ await expect(page).toHaveURL(/#about$/);
+ await page.getByRole('tab',{name:/BACKEND/}).click();
+ await expect(page.getByRole('tabpanel')).toContainText('Python');
+ await expect(page.getByRole('tabpanel')).not.toContainText('Tailwind');
+ await page.getByRole('button',{name:/PROJECT 01/}).click();
+ await expect(page.getByRole('dialog')).toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(page.getByRole('dialog')).not.toBeVisible();
+ await page.getByLabel('Terminal command').fill('skills');
+ await page.getByLabel('Terminal command').press('Enter');
+ await expect(page.getByRole('log')).toContainText('Docker');
+ await page.getByLabel('YOUR NAME').fill('Test Player');
+ await page.getByLabel('YOUR EMAIL').fill('player@example.com');
+ await page.getByLabel('YOUR MESSAGE').fill('Let us build a useful app.');
+ await page.getByRole('button',{name:/COPY MESSAGE/}).click();
+ await expect(page.getByRole('status')).toContainText('Message copied!');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+ expect(errors).toEqual([]);
+ await page.goto('/'); await page.screenshot({path:'tests/desktop.png'});
+});
+test('mobile navigation and no horizontal overflow', async ({page})=>{
+ await page.setViewportSize({width:375,height:812}); await page.goto('/');
+ await page.getByRole('button',{name:/MENU/}).click();
+ await page.getByRole('navigation').getByRole('link',{name:/PROJECTS/}).click();
+ await expect(page).toHaveURL(/#projects$/);
+ await expect(page.getByRole('button',{name:/MENU/})).toHaveAttribute('aria-expanded','false');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+ await page.goto('/'); await page.screenshot({path:'tests/mobile.png'});
+});
